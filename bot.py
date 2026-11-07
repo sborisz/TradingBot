@@ -6,42 +6,34 @@ import webbrowser
 import os
 from datetime import datetime, timedelta
 
-def fetch_coingecko_data():
-    # A CoinGecko ingyenes API-ja az elmúlt 24 óra adatait hozza le USD-ben (geoblokk nélkül)
-    url = "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=1"
-    try:
-        print(f"[INFO] Kapcsolódás a CoinGecko API-hoz: {url}")
-        headers = {"User-Agent": "Mozilla/5.0"}
-        response = requests.get(url, headers=headers, timeout=10)
-        
-        print(f"[DEBUG] CoinGecko HTTP Státusz: {response.status_code}")
-        
-        if response.status_code != 200:
-            err_msg = f"CoinGecko HTTP hiba: {response.status_code} - {response.text[:200]}"
-            print(f"[WARNING] {err_msg}")
-            raise ValueError(err_msg)
-            
-        json_data = response.json()
-        prices = json_data.get("prices", []) # [ [timestamp_ms, price], ... ]
-        
-        if not isinstance(prices, list) or len(prices) == 0:
-            print(f"[WARNING] Üres vagy hibás adat a CoinGecko-tól: {json_data}")
-            raise ValueError("Érvénytelen adat a CoinGecko-tól")
-            
-        df = pd.DataFrame(prices, columns=['timestamp', 'close'])
-        df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
-        df['close'] = df['close'].astype(float)
-        
-        print(f"[INFO] Sikeres adatszerzés a CoinGecko-tól. Sorok száma: {len(df)}")
-        return df[['timestamp', 'close']]
-        
-    except Exception as e:
-        print(f"[WARNING] Fallback szimuláció aktiválva hiba miatt: {e}")
-        now = datetime.now()
-        timestamps = [now - timedelta(minutes=1440-i) for i in range(1440)]
-        np.random.seed(int(time.time() % 100000))
-        prices = 60000 + np.cumsum(np.random.randn(1440) * 10)
-        return pd.DataFrame({'timestamp': timestamps, 'close': prices})
+def fetch_coingecko_data(max_retries=3):
+    url = "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart"
+    params = {"vs_currency": "usd", "days": 1}
+    headers = {"User-Agent": "Mozilla/5.0"}
+    api_key = os.environ.get("COINGECKO_API_KEY")
+    if api_key:
+        headers["x-cg-demo-api-key"] = api_key
+
+    for attempt in range(1, max_retries + 1):
+        response = requests.get(url, params=params, headers=headers, timeout=10)
+        print(f"[DEBUG] CoinGecko HTTP Státusz: {response.status_code} (attempt {attempt})")
+        if response.status_code == 429:
+            time.sleep(15 * attempt)
+            continue
+        response.raise_for_status()
+        break
+    else:
+        raise RuntimeError("CoinGecko rate limit: all retries failed")
+
+    prices = response.json().get("prices", [])
+    if not prices:
+        raise RuntimeError("CoinGecko returned no price data")
+
+    df = pd.DataFrame(prices, columns=["timestamp", "close"])
+    df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
+    df["close"] = df["close"].astype(float)
+    print(f"[INFO] Sorok száma: {len(df)}")
+    return df
 
 def generate_readme(trades, initial_cash, final_balance, profit_usd, profit_pct, bah_profit):
     timestamp_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
