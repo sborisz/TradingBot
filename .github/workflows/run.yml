@@ -25,4 +25,5 @@ jobs:
 
       - name: Run Trading Bot
         run: python bot.py
-        
+        env:
+          COINGECKO_API_KEY: ${{ secrets.COINGECKO_API_KEY }}
