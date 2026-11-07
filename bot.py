@@ -6,6 +6,7 @@ import os
 import sys
 from datetime import datetime, timedelta, timezone
 
+print("--- FIGYELEM: EZ MAR AZ UJ, FRISSITETT KOD FUTASAL APPARE! ---") 
 def fetch_coingecko_data(max_retries=4):
     """Fetch the last 24h of BTC/USD prices from CoinGecko.
     Raises RuntimeError if no real data can be obtained (no simulated fallback)."""
