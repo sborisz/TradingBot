@@ -1,6 +1,8 @@
 name: Run BTC Paper-Trading Bot
 
 on:
+  push:
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
@@ -23,3 +25,4 @@ jobs:
 
       - name: Run Trading Bot
         run: python bot.py
+        

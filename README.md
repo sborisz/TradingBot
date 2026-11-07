@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Bitcoin Paper-Trading Bot (24h Replay)
 
 > 🔴 **CRITICAL NOTICE:** This documentation, benchmark metrics, and execution details are fully mirrored and duplicated inside the accompanying `index.html` visual report file.
@@ -70,3 +71,7 @@ Trade #08 | Buy: 2026-11-06 18:41:00 @ $75908.77 -> Sell: 2026-11-06 18:43:00 @ 
 
 ### Run Command
 python bot.py
+=======
+# TradingBot
+BTC/USD Trading bot 24h
+>>>>>>> f1b3aacb399afaabe1ae70bd389f6d818d27b8c1
