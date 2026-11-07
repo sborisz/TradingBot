@@ -36,8 +36,8 @@ The bot applies a **15-period Simple Moving Average (SMA) momentum crossover** o
 
 ## Live Benchmark Results
 
-- **Run Timestamp:** 2026-11-07 11:39:01
-- **Data Window:** 2026-11-06 11:40:00 -> 2026-11-07 11:37:40 (UTC)
+- **Run Timestamp:** 2026-11-07 11:39:38
+- **Data Window:** 2026-11-06 11:40:00 -> 2026-11-07 11:38:10 (UTC)
 - **Execution Status:** 8 completed trades - Final Position: 0 BTC (Flat)
 
 ```text
