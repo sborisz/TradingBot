@@ -7,15 +7,20 @@ import os
 from datetime import datetime, timedelta
 
 def fetch_binance_data():
-    # Paraméterek nélkül a Binance API automatikusan a legutolsó (legfrissebb) 1440 percet (24 órát) adja vissza
     url = "https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=1440"
     try:
+        print([INFO] Kapcsolódás a Binance API-hoz: {url})
         response = requests.get(url, timeout=10)
+        
+        # Kiírjuk a státuszkódot és a válasz elejét, hogy lássuk, mit kapunk
+        print(f"[DEBUG] Binance HTTP Státusz: {response.status_code}")
+        print(f"[DEBUG] Binance Válasz szövege (első 200 karakter): {response.text[:200]}")
+        
         data = response.json()
         
         if not isinstance(data, list) or len(data) == 0:
-            print(f"[WARNING] Binance API returned non-list or empty response: {data}")
-            raise ValueError("Invalid or empty data from Binance")
+            print(f"[WARNING] A Binance API nem listát vagy üres választ adott: {data}")
+            raise ValueError("Érvénytelen vagy üres adat a Binancetől")
             
         df = pd.DataFrame(data, columns=[
             'timestamp', 'open', 'high', 'low', 'close', 'volume',
@@ -26,14 +31,10 @@ def fetch_binance_data():
         df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
         return df[['timestamp', 'close']]
     except Exception as e:
-        print(f"[WARNING] Fallback to simulated data due to API error: {e}")
-        
-        # Dinamikus utolsó 24 óra a pontos pillanatnyi időhöz igazítva
+        print(f"[WARNING] Hiba történt, átállás szimulációra. Részlet: {e}")
         now = datetime.now()
         timestamps = [now - timedelta(minutes=1440-i) for i in range(1440)]
-        
-        # Nincs fix seed, hogy a szimulált adat is valóban a pillanatnyi futáshoz igazodjon
-        np.random.seed(None)
+        np.random.seed(int(time.time() % 100000))
         prices = 60000 + np.cumsum(np.random.randn(1440) * 10)
         return pd.DataFrame({'timestamp': timestamps, 'close': prices})
 
