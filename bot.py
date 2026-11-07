@@ -253,6 +253,14 @@ def run_bot():
         print("[ERROR] Insufficient data available for simulation.")
         return
 
+    # --- Data window debug info (shows which data this run actually used) ---
+    print(f"[INFO] Data window: {df['timestamp'].iloc[0]} -> {df['timestamp'].iloc[-1]}")
+    print(f"[INFO] Last price: {df['close'].iloc[-1]:.2f}")
+    write_to_github_summary(
+        f"**Data window:** {df['timestamp'].iloc[0]} -> {df['timestamp'].iloc[-1]}  \n"
+        f"**Last price:** ${df['close'].iloc[-1]:,.2f}"
+    )
+
     initial_cash = 10000.0
     cash = initial_cash
     btc_held = 0.0
