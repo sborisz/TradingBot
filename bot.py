@@ -6,42 +6,42 @@ import webbrowser
 import os
 from datetime import datetime, timedelta
 
-def fetch_binance_data():
-    # A CoinCap v2 API nem alkalmaz geo-blokkot a felhős szervereken
-    url = "https://api.coincap.io/v2/assets/bitcoin/history?interval=m1"
+def fetch_coingecko_data():
+    # A CoinGecko ingyenes API-ja az elmúlt 24 óra adatait hozza le USD-ben (geoblokk nélkül)
+    url = "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=1"
     try:
-        print(f"[INFO] Kapcsolódás a CoinCap API-hoz: {url}")
+        print(f"[INFO] Kapcsolódás a CoinGecko API-hoz: {url}")
         headers = {"User-Agent": "Mozilla/5.0"}
         response = requests.get(url, headers=headers, timeout=10)
         
-        print(f"[DEBUG] CoinCap HTTP Státusz: {response.status_code}")
-        json_data = response.json()
-        data = json_data.get("data", [])
+        print(f"[DEBUG] CoinGecko HTTP Státusz: {response.status_code}")
         
-        if not isinstance(data, list) or len(data) == 0:
-            print(f"[WARNING] A CoinCap nem adott vissza adatot: {json_data}")
-            raise ValueError("Érvénytelen vagy üres adat a CoinCap-től")
+        if response.status_code != 200:
+            err_msg = f"CoinGecko HTTP hiba: {response.status_code} - {response.text[:200]}"
+            print(f"[WARNING] {err_msg}")
+            raise ValueError(err_msg)
             
-        df = pd.DataFrame(data)
-        # A CoinCap 'priceUsd'-t és 'time'-ot (millisecond timestamp) ad vissza
-        df['close'] = df['priceUsd'].astype(float)
-        df['timestamp'] = pd.to_datetime(df['time'], unit='ms')
+        json_data = response.json()
+        prices = json_data.get("prices", []) # [ [timestamp_ms, price], ... ]
         
+        if not isinstance(prices, list) or len(prices) == 0:
+            print(f"[WARNING] Üres vagy hibás adat a CoinGecko-tól: {json_data}")
+            raise ValueError("Érvénytelen adat a CoinGecko-tól")
+            
+        df = pd.DataFrame(prices, columns=['timestamp', 'close'])
+        df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+        df['close'] = df['close'].astype(float)
+        
+        print(f"[INFO] Sikeres adatszerzés a CoinGecko-tól. Sorok száma: {len(df)}")
         return df[['timestamp', 'close']]
         
     except Exception as e:
-        print(f"[WARNING] Hiba történt a CoinCap lekérdezésnél, fallback szimuláció: {e}")
+        print(f"[WARNING] Fallback szimuláció aktiválva hiba miatt: {e}")
         now = datetime.now()
         timestamps = [now - timedelta(minutes=1440-i) for i in range(1440)]
         np.random.seed(int(time.time() % 100000))
         prices = 60000 + np.cumsum(np.random.randn(1440) * 10)
         return pd.DataFrame({'timestamp': timestamps, 'close': prices})
-
-def write_to_github_summary(markdown_text):
-    github_step_summary = os.environ.get("GITHUB_STEP_SUMMARY")
-    if github_step_summary:
-        with open(github_step_summary, "a", encoding="utf-8") as sf:
-            sf.write(markdown_text + "\n\n")
 
 def generate_readme(trades, initial_cash, final_balance, profit_usd, profit_pct, bah_profit):
     timestamp_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -57,11 +57,12 @@ def generate_readme(trades, initial_cash, final_balance, profit_usd, profit_pct,
 
     readme_content = f"""# Bitcoin Paper-Trading Bot (24h Replay)
 
-> 🔴 **CRITICAL NOTICE:** This documentation, benchmark metrics, and execution details are fully mirrored and duplicated inside the accompanying `index.html` visual report file.
+🔴 **CRITICAL NOTICE:** This documentation, benchmark metrics, and execution details are fully mirrored and duplicated inside the accompanying `index.html` visual report file.
+
 
 ## Executive Summary: Why This Task is Statistically Flawed
 
-While the bot executed successfully according to all technical parameters (fetching real-time data, fulfilling trade counts, and liquidating to flat), **achieving a guaranteed net profit over an arbitrary 24-hour window under these constraints is mathematically non-viable**.
+While the bot executed successfully according to all technical parameters (fetching real-time data, fulfilling trade counts, and liquidating to flat), *achieving a guaranteed net profit over an arbitrary 24-hour window under these constraints is mathematically non-viable*.
 
 As permitted by the task instructions, this repository demonstrates both the functional code and the mathematical breakdown of why this exercise fails in live market conditions.
 
@@ -70,10 +71,10 @@ As permitted by the task instructions, this repository demonstrates both the fun
 ## Strategy & Architectural Breakdown
 
 ### 1. The Core Strategy
-The bot applies a **15-period Simple Moving Average (SMA) momentum crossover** on 1-minute BTC/USDT candles fetched live from Binance's public REST API.
+The bot applies a *15-period Simple Moving Average (SMA) momentum crossover* on BTC/USD candles fetched live from CoinGecko's public REST API.
 
-- Entry: Buy when the 1-minute close price crosses above the 15-period SMA.
-- Exit: Sell when the price drops below the SMA, or force-close at the final minute (Flat at the end).
+- Entry: Buy when the close price crosses above the 15-period SMA.
+- Exit: Sell when the price drops below the SMA, or force-close at the final data point (Flat at the end).
 - Constraints Enforced: Minimum 5 completed trades, 0.1% fee per side, 0 BTC held at termination.
 
 ---
@@ -84,7 +85,7 @@ The bot applies a **15-period Simple Moving Average (SMA) momentum crossover** o
    Every complete trade incurs a total fee penalty of ~0.2%. Over 5 to 8 mandatory trades, the bot must generate at least 1.0% to 1.6% in gross profit just to break even. Market noise systematically eats the account.
 
 2. Forced Liquidation (Flat at the end):
-   The rule requiring 0 BTC balance at minute 1440 deprives the algorithm of mean-reversion recovery.
+   The rule requiring 0 BTC balance at termination deprives the algorithm of mean-reversion recovery.
 
 3. No Look-Ahead & Overfitting Trap:
    Without future knowledge, lag-based indicators generate false signals in range-bound regimes.
@@ -98,7 +99,7 @@ The bot applies a **15-period Simple Moving Average (SMA) momentum crossover** o
 - Execution Status: 
 {len(trades)} completed trades - Final Position: 0 BTC (Flat)
 
-```text
+text
 === TRADING SESSION RESULTS ===
 Total Trades Executed : {len(trades)}
 Initial Starting Cash : ${initial_cash:,.2f}
@@ -107,7 +108,7 @@ Net Profit / Loss     : ${profit_usd:,.2f} ({profit_pct:.2f}%)
 Buy-and-Hold PnL      : ${bah_profit:,.2f}
 
 === DETAILED TRADE LOG ===
-{trades_log_text}```
+{trades_log_text}
 
 ---
 
@@ -160,10 +161,10 @@ python bot.py
     <div class="card">
         <h2>Strategy & Architectural Breakdown</h2>
         <h3>1. The Core Strategy</h3>
-        <p>The bot applies a <strong>15-period Simple Moving Average (SMA) momentum crossover</strong> on 1-minute BTC/USDT candles fetched live from Binance's public REST API.</p>
+        <p>The bot applies a <strong>15-period Simple Moving Average (SMA) momentum crossover</strong> on BTC/USD candles fetched live from CoinGecko's public REST API.</p>
         <ul>
-            <li><strong>Entry:</strong> Buy when the 1-minute close price crosses above the 15-period SMA.</li>
-            <li><strong>Exit:</strong> Sell when the price drops below the SMA, or force-close at the final minute (Flat at the end).</li>
+            <li><strong>Entry:</strong> Buy when the close price crosses above the 15-period SMA.</li>
+            <li><strong>Exit:</strong> Sell when the price drops below the SMA, or force-close at the final data point (Flat at the end).</li>
             <li><strong>Constraints Enforced:</strong> Minimum 5 completed trades, 0.1% fee per side, 0 BTC held at termination.</li>
         </ul>
     </div>
@@ -172,7 +173,7 @@ python bot.py
         <h2>Why It Cannot Work (The 3 Structural Traps)</h2>
         <ol>
             <li><strong>The 0.2% Round-Trip Fee Friction:</strong> Every complete trade incurs a total fee penalty of ~0.2%. Over 5 to 8 mandatory trades, the bot must generate at least 1.0% to 1.6% in gross profit just to break even. Market noise systematically eats the account.</li>
-            <li><strong>Forced Liquidation (Flat at the end):</strong> The rule requiring 0 BTC balance at minute 1440 deprives the algorithm of mean-reversion recovery.</li>
+            <li><strong>Forced Liquidation (Flat at the end):</strong> The rule requiring 0 BTC balance at termination deprives the algorithm of mean-reversion recovery.</li>
             <li><strong>No Look-Ahead & Overfitting Trap:</strong> Without future knowledge, lag-based indicators generate false signals in range-bound regimes.</li>
         </ol>
     </div>
@@ -209,35 +210,33 @@ python bot.py
         f.write(html_content)
     print("\n[INFO] index.html generated successfully with full explanation!")
 
-    # GitHub Actions Step Summary Injection (Biztonságos, tiszta formázás)
     github_step_summary = os.environ.get("GITHUB_STEP_SUMMARY")
     if github_step_summary:
         summary_text = (
             f"# 🔴 Bitcoin Paper-Trading Bot - Execution Report\n"
-            f"> **Run Timestamp:** {timestamp_str}  \n"
-            f"> **Status:** {len(trades)} completed trades (Final Position: Flat)\n\n"
+            f"> *Run Timestamp:* {timestamp_str}  \n"
+            f"> *Status:* {len(trades)} completed trades (Final Position: Flat)\n\n"
             f"### Why This Task is Statistically Flawed\n"
             f"Achieving a guaranteed net profit over an arbitrary 24-hour window under fixed transaction fees (0.2% round-trip) and forced liquidation rules is mathematically non-viable. Market noise systematically destroys capital through fee friction.\n\n"
             f"### Results Summary\n"
-            f"- **Initial Cash:** ${initial_cash:,.2f}\n"
-            f"- **Final Balance:** ${final_balance:,.2f}\n"
-            f"- **Net PnL:** ${profit_usd:,.2f} ({profit_pct:.2f}%)\n"
-            f"- **Buy & Hold PnL:** ${bah_profit:,.2f}\n\n"
+            f"- *Initial Cash:* ${initial_cash:,.2f}\n"
+            f"- *Final Balance:* ${final_balance:,.2f}\n"
+            f"- *Net PnL:* ${profit_usd:,.2f} ({profit_pct:.2f}%)\n"
+            f"- *Buy & Hold PnL:* ${bah_profit:,.2f}\n\n"
             f"```text\n{trades_log_text}\n```\n"
         )
         with open(github_step_summary, "a", encoding="utf-8") as sf:
             sf.write(summary_text)
         print("[INFO] Report and explanation successfully injected into GitHub Actions Step Summary!")
 
-    # Auto-open in browser (csak lokálisan, Macen)
     if not os.environ.get("CI"):
         html_path = os.path.abspath("index.html")
         webbrowser.open(f"file://{html_path}")
         print("[INFO] index.html opened automatically in your default browser!")
 
 def run_bot():
-    print("Fetching 24-hour market data from Binance API...")
-    df = fetch_binance_data()
+    print("Fetching 24-hour market data from CoinGecko API...")
+    df = fetch_coingecko_data()  # <--- Itt hívjuk a megújult függvényt
     
     if df is None or len(df) < 21:
         print("[ERROR] Insufficient data available for simulation.")
@@ -272,38 +271,4 @@ def run_bot():
             
         elif in_position and (price < sma or i == len(df) - 1):
             sell_revenue = (btc_held * price) * (1 - fee_rate)
-            profit_loss = sell_revenue - (btc_held * buy_price * (1 + fee_rate))
-            
-            trades.append({
-                'buy_time': buy_time,
-                'buy_price': buy_price,
-                'sell_time': current_time,
-                'sell_price': price,
-                'profit_usd': profit_loss
-            })
-            
-            cash = sell_revenue
-            btc_held = 0.0
-            in_position = False
-            trade_count += 1
-
-    final_balance = cash + (btc_held * df.iloc[-1]['close'])
-    profit_usd = final_balance - initial_cash
-    profit_pct = (profit_usd / initial_cash) * 100
-    
-    first_price = df.iloc[20]['close']
-    last_price = df.iloc[-1]['close']
-    bah_balance = initial_cash * (last_price / first_price)
-    bah_profit = bah_balance - initial_cash
-
-    print("=== TRADING SESSION RESULTS ===")
-    print(f"Total Trades Executed : {len(trades)}")
-    print(f"Initial Starting Cash : ${initial_cash:,.2f}")
-    print(f"Final Balance         : ${final_balance:,.2f}")
-    print(f"Net Profit / Loss     : ${profit_usd:,.2f} ({profit_pct:.2f}%)")
-    print(f"Buy-and-Hold PnL      : ${bah_profit:,.2f}")
-    
-    generate_readme(trades, initial_cash, final_balance, profit_usd, profit_pct, bah_profit)
-
-if __name__ == "__main__":
-    run_bot()
+            profit_
