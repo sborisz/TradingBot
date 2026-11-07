@@ -7,42 +7,30 @@ import os
 from datetime import datetime, timedelta
 
 def fetch_binance_data():
-    url = "https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=1440"
-    debug_msg = ""
+    # A CoinCap v2 API nem alkalmaz geo-blokkot a felhős szervereken
+    url = "https://api.coincap.io/v2/assets/bitcoin/history?interval=m1"
     try:
-        print(f"[INFO] Kapcsolódás a Binance API-hoz: {url}")
-        response = requests.get(url, timeout=10)
+        print(f"[INFO] Kapcsolódás a CoinCap API-hoz: {url}")
+        headers = {"User-Agent": "Mozilla/5.0"}
+        response = requests.get(url, headers=headers, timeout=10)
         
-        # Összegyűjtjük a debug infót
-        debug_msg = f"Binance HTTP Státusz: {response.status_code}\nVálasz szövege: {response.text[:300]}"
-        print(f"[DEBUG] {debug_msg}")
-        
-        data = response.json()
+        print(f"[DEBUG] CoinCap HTTP Státusz: {response.status_code}")
+        json_data = response.json()
+        data = json_data.get("data", [])
         
         if not isinstance(data, list) or len(data) == 0:
-            err_text = f"[WARNING] A Binance API nem listát vagy üres választ adott: {data}"
-            print(err_text)
-            raise ValueError("Érvénytelen vagy üres adat a Binancetől")
+            print(f"[WARNING] A CoinCap nem adott vissza adatot: {json_data}")
+            raise ValueError("Érvénytelen vagy üres adat a CoinCap-től")
             
-        df = pd.DataFrame(data, columns=[
-            'timestamp', 'open', 'high', 'low', 'close', 'volume',
-            'close_time', 'quote_asset_volume', 'number_of_trades',
-            'taker_buy_base', 'taker_buy_quote', 'ignore'
-        ])
-        df['close'] = df['close'].astype(float)
-        df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+        df = pd.DataFrame(data)
+        # A CoinCap 'priceUsd'-t és 'time'-ot (millisecond timestamp) ad vissza
+        df['close'] = df['priceUsd'].astype(float)
+        df['timestamp'] = pd.to_datetime(df['time'], unit='ms')
         
-        # Ha sikeres volt, ezt is kiírjuk a GH összefoglalóba
-        write_to_github_summary(f"### Binance API Siker\n```text\n{debug_msg}\n```")
         return df[['timestamp', 'close']]
         
     except Exception as e:
-        error_summary = f"### 🔴 Binance API Hiba / Fallback aktiválva\n- *Hibaüzenet:* `{e}`\n- *Debug Részlet:* \n```text\n{debug_msg}\n```"
-        print(f"[WARNING] Hiba történt, átállás szimulációra. Részlet: {e}")
-        
-        # Itt azonnal beleírjuk a GitHub összefoglalóba, hogy miért nem jött össze a Binance
-        write_to_github_summary(error_summary)
-        
+        print(f"[WARNING] Hiba történt a CoinCap lekérdezésnél, fallback szimuláció: {e}")
         now = datetime.now()
         timestamps = [now - timedelta(minutes=1440-i) for i in range(1440)]
         np.random.seed(int(time.time() % 100000))
