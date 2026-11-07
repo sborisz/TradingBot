@@ -49,5 +49,26 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add README.md index.html
-          git diff --cached --quiet || (git commit -m "Update report [skip ci]" && git push)
+
+          # keep the freshly generated report safe while we re-sync
+          mkdir -p /tmp/report
+          cp README.md index.html /tmp/report/
+
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            cp /tmp/report/README.md /tmp/report/index.html .
+            git add README.md index.html
+            if git diff --cached --quiet; then
+              echo "No report changes to commit."
+              exit 0
+            fi
+            git commit -m "Update report [skip ci]"
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "Push rejected (attempt $attempt), retrying..."
+            sleep 5
+          done
+          echo "Could not push after 5 attempts."
+          exit 1
