@@ -7,6 +7,7 @@ import os
 from datetime import datetime, timedelta
 
 def fetch_binance_data():
+    # Paraméterek nélkül a Binance API automatikusan a legutolsó (legfrissebb) 1440 percet (24 órát) adja vissza
     url = "https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=1440"
     try:
         response = requests.get(url, timeout=10)
@@ -26,9 +27,13 @@ def fetch_binance_data():
         return df[['timestamp', 'close']]
     except Exception as e:
         print(f"[WARNING] Fallback to simulated data due to API error: {e}")
-        now = datetime.now() - timedelta(hours=24)
-        timestamps = [now + timedelta(minutes=i) for i in range(1440)]
-        np.random.seed(42)
+        
+        # Dinamikus utolsó 24 óra a pontos pillanatnyi időhöz igazítva
+        now = datetime.now()
+        timestamps = [now - timedelta(minutes=1440-i) for i in range(1440)]
+        
+        # Nincs fix seed, hogy a szimulált adat is valóban a pillanatnyi futáshoz igazodjon
+        np.random.seed(None)
         prices = 60000 + np.cumsum(np.random.randn(1440) * 10)
         return pd.DataFrame({'timestamp': timestamps, 'close': prices})
 
