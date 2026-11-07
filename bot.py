@@ -8,18 +8,20 @@ from datetime import datetime, timedelta
 
 def fetch_binance_data():
     url = "https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=1440"
+    debug_msg = ""
     try:
         print(f"[INFO] Kapcsolódás a Binance API-hoz: {url}")
         response = requests.get(url, timeout=10)
         
-        # Kiírjuk a státuszkódot és a válasz elejét, hogy lássuk, mit kapunk
-        print(f"[DEBUG] Binance HTTP Státusz: {response.status_code}")
-        print(f"[DEBUG] Binance Válasz szövege (első 200 karakter): {response.text[:200]}")
+        # Összegyűjtjük a debug infót
+        debug_msg = f"Binance HTTP Státusz: {response.status_code}\nVálasz szövege: {response.text[:300]}"
+        print(f"[DEBUG] {debug_msg}")
         
         data = response.json()
         
         if not isinstance(data, list) or len(data) == 0:
-            print(f"[WARNING] A Binance API nem listát vagy üres választ adott: {data}")
+            err_text = f"[WARNING] A Binance API nem listát vagy üres választ adott: {data}"
+            print(err_text)
             raise ValueError("Érvénytelen vagy üres adat a Binancetől")
             
         df = pd.DataFrame(data, columns=[
@@ -29,14 +31,29 @@ def fetch_binance_data():
         ])
         df['close'] = df['close'].astype(float)
         df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+        
+        # Ha sikeres volt, ezt is kiírjuk a GH összefoglalóba
+        write_to_github_summary(f"### Binance API Siker\n```text\n{debug_msg}\n```")
         return df[['timestamp', 'close']]
+        
     except Exception as e:
+        error_summary = f"### 🔴 Binance API Hiba / Fallback aktiválva\n- *Hibaüzenet:* `{e}`\n- *Debug Részlet:* \n```text\n{debug_msg}\n```"
         print(f"[WARNING] Hiba történt, átállás szimulációra. Részlet: {e}")
+        
+        # Itt azonnal beleírjuk a GitHub összefoglalóba, hogy miért nem jött össze a Binance
+        write_to_github_summary(error_summary)
+        
         now = datetime.now()
         timestamps = [now - timedelta(minutes=1440-i) for i in range(1440)]
         np.random.seed(int(time.time() % 100000))
         prices = 60000 + np.cumsum(np.random.randn(1440) * 10)
         return pd.DataFrame({'timestamp': timestamps, 'close': prices})
+
+def write_to_github_summary(markdown_text):
+    github_step_summary = os.environ.get("GITHUB_STEP_SUMMARY")
+    if github_step_summary:
+        with open(github_step_summary, "a", encoding="utf-8") as sf:
+            sf.write(markdown_text + "\n\n")
 
 def generate_readme(trades, initial_cash, final_balance, profit_usd, profit_pct, bah_profit):
     timestamp_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
