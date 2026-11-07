@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 def fetch_binance_data():
     url = "https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=1440"
     try:
-        print([INFO] Kapcsolódás a Binance API-hoz: {url})
+        print(f"[INFO] Kapcsolódás a Binance API-hoz: {url}")
         response = requests.get(url, timeout=10)
         
         # Kiírjuk a státuszkódot és a válasz elejét, hogy lássuk, mit kapunk
