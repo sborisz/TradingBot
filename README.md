@@ -36,26 +36,26 @@ The bot applies a **15-period Simple Moving Average (SMA) momentum crossover** o
 
 ## Live Benchmark Results
 
-- **Run Timestamp:** 2026-11-12 21:33:59
-- **Data Window:** 2026-11-11 21:35:00 -> 2026-11-12 21:32:40 (UTC)
+- **Run Timestamp:** 2026-11-12 22:32:05
+- **Data Window:** 2026-11-11 22:35:00 -> 2026-11-12 22:30:30 (UTC)
 - **Execution Status:** 8 completed trades - Final Position: 0 BTC (Flat)
 
 ```text
 === TRADING SESSION RESULTS ===
 Total Trades Executed : 8
 Initial Starting Cash : $10,000.00
-Final Balance         : $9,802.99
-Net Profit / Loss     : $-197.01 (-1.97%)
-Buy-and-Hold PnL      : $-266.14
+Final Balance         : $9,804.98
+Net Profit / Loss     : $-195.02 (-1.95%)
+Buy-and-Hold PnL      : $-323.11
 
 === DETAILED TRADE LOG ===
-Trade #01 | Buy: 2026-11-11 23:45:00 @ $73833.16 -> Sell: 2026-11-12 01:05:00 @ $73777.64 (PnL:$-27.48)
+Trade #01 | Buy: 2026-11-12 00:15:00 @ $73818.23 -> Sell: 2026-11-12 01:05:00 @ $73777.64 (PnL:$-25.47)
 Trade #02 | Buy: 2026-11-12 02:10:00 @ $73707.09 -> Sell: 2026-11-12 03:00:00 @ $73726.02 (PnL:$-17.37)
 Trade #03 | Buy: 2026-11-12 03:05:00 @ $73768.95 -> Sell: 2026-11-12 03:10:00 @ $73764.37 (PnL:$-20.51)
-Trade #04 | Buy: 2026-11-12 04:00:00 @ $73723.46 -> Sell: 2026-11-12 04:20:00 @ $73681.35 (PnL:$-25.51)
+Trade #04 | Buy: 2026-11-12 04:00:00 @ $73723.46 -> Sell: 2026-11-12 04:20:00 @ $73681.35 (PnL:$-25.52)
 Trade #05 | Buy: 2026-11-12 04:50:00 @ $73695.13 -> Sell: 2026-11-12 05:00:00 @ $73653.40 (PnL:$-25.40)
-Trade #06 | Buy: 2026-11-12 06:10:00 @ $73563.49 -> Sell: 2026-11-12 06:35:00 @ $73542.73 (PnL:$-22.53)
-Trade #07 | Buy: 2026-11-12 06:40:00 @ $73559.68 -> Sell: 2026-11-12 06:45:00 @ $73486.58 (PnL:$-29.48)
+Trade #06 | Buy: 2026-11-12 06:10:00 @ $73563.49 -> Sell: 2026-11-12 06:35:00 @ $73542.73 (PnL:$-22.54)
+Trade #07 | Buy: 2026-11-12 06:40:00 @ $73559.68 -> Sell: 2026-11-12 06:45:00 @ $73486.58 (PnL:$-29.49)
 Trade #08 | Buy: 2026-11-12 07:05:00 @ $73542.80 -> Sell: 2026-11-12 07:10:00 @ $73475.32 (PnL:$-28.65)
 ```
 
