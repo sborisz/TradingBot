@@ -36,8 +36,8 @@ The bot applies a **15-period Simple Moving Average (SMA) momentum crossover** o
 
 ## Live Benchmark Results
 
-- **Run Timestamp:** 2026-11-15 17:03:47
-- **Data Window:** 2026-11-14 17:05:00 -> 2026-11-15 17:02:20 (UTC)
+- **Run Timestamp:** 2026-11-15 17:57:33
+- **Data Window:** 2026-11-14 18:00:00 -> 2026-11-15 17:56:10 (UTC)
 - **Execution Status:** 8 completed trades - Final Position: 0 BTC (Flat)
 
 ```text
@@ -46,7 +46,7 @@ Total Trades Executed : 8
 Initial Starting Cash : $10,000.00
 Final Balance         : $9,952.84
 Net Profit / Loss     : $-47.16 (-0.47%)
-Buy-and-Hold PnL      : $-153.61
+Buy-and-Hold PnL      : $-166.67
 
 === DETAILED TRADE LOG ===
 Trade #01 | Buy: 2026-11-14 19:45:00 @ $65767.63 -> Sell: 2026-11-14 20:15:00 @ $65531.57 (PnL:$-55.80)
